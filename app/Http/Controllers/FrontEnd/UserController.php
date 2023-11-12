@@ -34,28 +34,6 @@ use Symfony\Component\HttpFoundation\File\Exception\FileNotFoundException;
 class UserController extends Controller
 {
 
-    public function validateLogin($credentials): \Illuminate\Validation\Validator
-    {
-        $info = DB::table('basic_settings')->select('google_recaptcha_status')->first();
-
-        $rules = [
-            'email' => 'required|email:rfc,dns',
-            'password' => 'required'
-        ];
-
-
-        $messages = [
-            'email.required' => "البريد الإلكتروني مطلوب",
-            'email.email' => "البريد الإلكتروني غير صحيح",
-            'password.required' => "كلمة المرور مطلوبة",
-        ];
-
-
-        return Validator::make($credentials, $rules, $messages);
-
-
-    }
-
     public function loginSubmit(Request $request)
     {
         if ($request->session()->has('redirectTo')) {
@@ -117,6 +95,28 @@ class UserController extends Controller
 
 
 //        return redirect()->back()->withErrors($errorMsg)->withInput(['email' => $request->old('email'), 'password' => $request->old('email')]);
+
+    }
+
+    public function validateLogin($credentials): \Illuminate\Validation\Validator
+    {
+        $info = DB::table('basic_settings')->select('google_recaptcha_status')->first();
+
+        $rules = [
+            'email' => 'required|email:rfc,dns',
+            'password' => 'required'
+        ];
+
+
+        $messages = [
+            'email.required' => "البريد الإلكتروني مطلوب",
+            'email.email' => "البريد الإلكتروني غير صحيح",
+            'password.required' => "كلمة المرور مطلوبة",
+        ];
+
+
+        return Validator::make($credentials, $rules, $messages);
+
 
     }
 

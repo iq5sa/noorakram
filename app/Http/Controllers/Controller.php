@@ -30,6 +30,16 @@ class Controller extends BaseController
         return Basic::select('breadcrumb')->firstOrFail();
     }
 
+    public static function generateOrderID($userIdentifier): string
+    {
+        // Get the current timestamp
+        $timestamp = time();
+
+        $randomString = substr(str_shuffle("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"), 0, 6);
+
+        return $timestamp . $randomString . $userIdentifier;
+    }
+
     public function getCurrencyInfo()
     {
         $baseCurrencyInfo = Basic::select('base_currency_symbol', 'base_currency_symbol_position', 'base_currency_text', 'base_currency_text_position', 'base_currency_rate')
@@ -101,7 +111,6 @@ class Controller extends BaseController
         return redirect()->back();
     }
 
-
     public function serviceUnavailable(): View
     {
         $info = DB::table('basic_settings')->select('maintenance_img', 'maintenance_msg')->first();
@@ -133,17 +142,6 @@ class Controller extends BaseController
         return Response::json([
             'success' => 'تم اشتراكك في القائمة البريدية بنجاح شكرا لك.'
         ], 200);
-    }
-
-
-    public static function generateOrderID($userIdentifier): string
-    {
-        // Get the current timestamp
-        $timestamp = time();
-
-        $randomString = substr(str_shuffle("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"), 0, 6);
-
-        return $timestamp . $randomString . $userIdentifier;
     }
 
     function uniqueOrderNumber($userId): string

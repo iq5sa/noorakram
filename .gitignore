@@ -3,6 +3,10 @@
 /public/dist
 /public/storage
 /storage/*.key
+.DS_Store
+.editorconfig
+package-lock.json
+
 .env.backup
 .phpunit.result.cache
 docker-compose.override.yml
