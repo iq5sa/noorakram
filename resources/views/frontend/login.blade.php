@@ -55,7 +55,12 @@
                                     <h6 class="h3">تسجيل الدخول</h6>
                                     <p class="text-muted mb-0">سجل دخولك في المنصة لتتمكن من الوصول لجميع خدمتنا.</p>
                                 </div>
+
                                 <span class="clearfix"></span>
+                                <!-- Login Via -->
+                                @include('frontend.partials.social-login')
+
+
                                 <form role="form" action="{{ route('user.login_submit') }}" method="POST">
 
                                     @csrf

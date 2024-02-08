@@ -3,98 +3,68 @@
 namespace App\Http\Controllers\FrontEnd\PaymentGateway;
 
 use App\Http\Controllers\Controller;
-use App\Models\Curriculum\CourseEnrolment;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class TabadulPayment extends Controller
 {
 
 
-    private $username;
-    private $password;
+    private static string $apiHost = "https://epg.tabadul.iq/epg/rest";
+    private string $createOrderEndPoint;
 
     public function __construct()
     {
-        $this->username = "Noor_Akram_api";
-        $this->password = '6iA`[6"84Pa5';
+        $this->createOrderEndPoint = $this::$apiHost . "/register.do";
+//        $this->getOrderStatusEndPoint = $this::$apiHost . "/getOrderStatus.do";
     }
 
-    public function pay($amount, $orderId, $orderType)
-    {
-        $orderData = [
-            "returnUrl" => route("credit.payment.redirect"),
-            "amount" => $amount,
-            "orderType" => $orderType,
-            "orderId" => $orderId
-        ];
-        $request = $this->sendRequest($orderData);
-        $lastEnrolment = session()->get('enrolment', 1);
-
-        $data = json_decode($request);
-
-        $enrolId = $lastEnrolment->id;
-        $enrolment = CourseEnrolment::find($enrolId);
-
-        if (isset($data->formUrl)) {
-            $enrolment->tabadul_order_id = $data->orderId;
-            $enrolment->save();
-            return redirect($data->formUrl);
-        }
-
-        if (isset($data->errorCode)) {
-            if ($data->errorCode == 1) {
-
-                $enrolment->order_id = Controller::generateOrderID(Auth::id());
-                $enrolment->payment_method = "credit";
-                $enrolment->save();
-
-                request()->session()->put('enrolment', $enrolment);
-                return redirect()->route("payment.checkout", ["order" => $enrolment->order_id, "orderType" => $orderType]);
-            }
-        }
-
-
-        //return session("enrolment");
-        return $request;
-    }
-
-    public function sendRequest($orderData)
+    public function createOrder($orderData)
     {
 
-        $url = "https://epg.tabadul.iq/epg/rest/register.do";
         $headers = [
-            'Authorization' => '39cd434c94fa49e99646b58f31bbdb88',
-            "content-type" => "application/json"
+            "Content-Type" => "application/x-www-form-urlencoded"
         ];
 
         $body = [
-            "userName" => $this->username,
-            "password" => $this->password,
-            "orderNumber" => $orderData["orderId"],
+            "userName" => Config::get('tabadul.username'),
+            "password" => Config::get('tabadul.password'),
+            "returnUrl" => Config::get('tabadul.returnUrl'),
+            "currancy" => Config::get('tabadul.currency'),
+            "language" => Config::get('tabadul.language'),
+            "orderNumber" => $orderData["order_id"],
+            "clientId" => $orderData["client_id"],
             "amount" => $orderData["amount"] . '000',
-            "currancy" => "368",
-            "returnUrl" => $orderData["returnUrl"],
-            "clientId" => \Illuminate\Support\Facades\Auth::id(),
-            "description" => $orderData["orderType"],
-            "language" => "AR"
+            "description" => $orderData["desc"],
         ];
 
 
-        return $this->build($url, $headers, $body);
+        return $this->buildHttpRequest($this->createOrderEndPoint, $headers, $body);
 
 
     }
 
-    public function build($url, $headers = [], $body = [])
+    public function buildHttpRequest($url, $headers = [], $body = [])
     {
 
-        return Http::withHeaders($headers)->asForm()->post($url, $body);
+        try {
+            $response = Http::timeout(30)->withHeaders($headers)->asForm()->post($url, $body);
+            if ($response->successful()) {
+                return $response->json();
+            }
+        } catch (\Exception $e) {
+            $response = Http::retry(3, 100)->withHeaders($headers)->asForm()->post($url, $body);
+
+            Log::error('Payment request failed: ' . $e->getMessage());
+
+            return $response;
+        }
     }
 
     public function getOrderStatus($order_id)
     {
-        $url = "https://epgtest.tabadul.iq:9444/epg/rest/getOrderStatus.do";
+        $url = "https://epg.tabadul.iq/epg/rest/getOrderStatus.do";
 
         return Http::asForm()->post($url, [
             "userName" => $this->username,
@@ -104,10 +74,10 @@ class TabadulPayment extends Controller
 
     }
 
-
     public function redirect()
     {
         return redirect()->route("courses");
     }
+
 
 }

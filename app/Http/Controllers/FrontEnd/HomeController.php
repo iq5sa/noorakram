@@ -93,4 +93,16 @@ class HomeController extends Controller
 
         return view('frontend.terms', $queryResult);
     }
+
+    public function privacy()
+    {
+        $language = $this->getLanguage();
+
+        $queryResult['pageHeading'] = "سياسة الخصوصية";
+        $queryResult['breadcrumbImg'] = "terms.png";
+
+        $queryResult['bgImg'] = $this->getBreadcrumb();
+
+        return view('frontend.privacy-policy', $queryResult);
+    }
 }

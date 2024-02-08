@@ -33,11 +33,13 @@ class EnrolmentController extends Controller
         $isUserEnrolled = $this->isUserEnrolled($id, Auth::id());
 
         if ($isUserEnrolled) {
-            if ($isUserEnrolled->payment_status == "pending") {
-                return redirect()->route("payment.checkout", ["orderType" => "course", "order_id" => $isUserEnrolled->order_id]);
+            $enrollment = CourseEnrolment::where("course_id", "=", $id)->where("user_id", "=", Auth::id())->get()->first();
+            \request()->session()->put('enrolment', $enrollment);
+            if ($enrollment->payment_status == "pending") {
+                return redirect()->route("payment.checkout", ["orderType" => "course", "order_id" => $enrollment->order_id]);
             }
 
-            if ($isUserEnrolled->payment_status == "completed") {
+            if ($enrollment->payment_status == "completed") {
                 $request->session()->flash('warning', 'انت مشترك فعلا في الدورة');
                 return redirect()->back();
             }
@@ -97,12 +99,12 @@ class EnrolmentController extends Controller
         return Auth::guard('web')->user();
     }
 
-    private function isUserEnrolled($course_id, $user_id)
+    private function isUserEnrolled($course_id, $user_id): bool
     {
         $course_id = intval($course_id);
         $enrollment = CourseEnrolment::where("course_id", "=", $course_id)->where("user_id", "=", $user_id)->get();
 
-        return $enrollment->count() >= 1 ? $enrollment->first() : false;
+        return $enrollment->count() == 1;
     }
 
     public function calculation(Request $request, $course_id): array

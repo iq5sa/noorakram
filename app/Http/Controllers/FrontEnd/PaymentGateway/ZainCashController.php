@@ -14,9 +14,7 @@ class ZainCashController extends Controller
     public function pay($amount, $order_id, $orderType)
     {
         $zainCashInstance = new ZainCash();
-        $payload = $zainCashInstance->request($amount, "orderType", $order_id);
-
-        return $payload;
+        return $zainCashInstance->request($amount, $orderType, $order_id);
     }
 
 
@@ -50,7 +48,7 @@ class ZainCashController extends Controller
 
                 return redirect()->route("payment.checkout", ["order_id" => $result->orderid,
                         "orderType" => "course"]
-                )->with("error", "Not enough credit on balance");
+                )->with("error", "لا توجد اموال كافي في حسابك");
             }
 
         }

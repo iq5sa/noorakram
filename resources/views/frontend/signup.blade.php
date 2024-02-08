@@ -58,6 +58,9 @@
                                         خدماتنا.</p>
                                 </div>
                                 <span class="clearfix"></span>
+
+                                @include('frontend.partials.social-login')
+
                                 <form action="{{ route('user.signup_submit') }}" method="POST">
                                     @csrf
                                     @if(Session::has("error") )

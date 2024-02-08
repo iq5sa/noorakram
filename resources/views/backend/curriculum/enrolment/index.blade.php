@@ -137,7 +137,7 @@
                                                 <td>{{ $user->username }}</td>
                                                 <td>
                                                     @if(empty($enrolment->payment_method))
-                                                        Free
+                                                        ...
                                                     @else
                                                         {{$enrolment->payment_method}}
                                                     @endif
