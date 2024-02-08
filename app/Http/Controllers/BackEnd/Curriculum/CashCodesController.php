@@ -29,7 +29,7 @@ class CashCodesController extends Controller
 
         $courses = $request->course;
         $code = $request->code;
-        $cashCode = new cashCodes();
+        $cashCode = new CashCode();
         $cashCode->course_id = $courses;
         $cashCode->code = $code;
         $cashCode->expire = 0;
@@ -41,7 +41,7 @@ class CashCodesController extends Controller
 
     public function destroy($id)
     {
-        cashCodes::findOrFail($id)->delete();
+        CashCode::findOrFail($id)->delete();
 
         return redirect()->back()->with('success', 'Coupon deleted successfully!');
     }

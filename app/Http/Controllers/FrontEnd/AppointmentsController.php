@@ -3,19 +3,21 @@
 namespace App\Http\Controllers\FrontEnd;
 
 use App\Http\Controllers\Controller;
-use Hawkiq\LaravelZaincash\Services\ZainCash;
+use Carbon\Carbon;
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Contracts\View\Factory;
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
-use PHPMailer\PHPMailer\Exception;
-use PHPMailer\PHPMailer\PHPMailer;
+use Illuminate\Support\Facades\Validator;
 
 class AppointmentsController extends Controller
 {
     //
 
-    public function index()
+    public function index(): Factory|View|Application
     {
+
         $language = $this->getLanguage();
 
 
@@ -24,121 +26,89 @@ class AppointmentsController extends Controller
         $queryResult['pageHeading'] = "حجز موعد";
 
         $queryResult['breadcrumbImg'] = "appointment.png";
+        $queryResult["availableTimes"] = $this->getAvailableTimes();
+        $queryResult["availableDates"] = $this->getAvailableDates();
 
 
         return view('frontend.appointments.index', $queryResult);
     }
 
-
-    public function payment(Request $request)
+    private function getAvailableDates(): array
     {
 
+        return DB::table('appointment_date_open')->select('date')->distinct()->pluck('date')->toArray();
+    }
 
-        $totalPrice = $request->totalPrice;
-        $info = DB::table('basic_settings')
-            ->select('smtp_status', 'smtp_host', 'smtp_port', 'encryption', 'smtp_username', 'smtp_password', 'from_mail', 'from_name')
-            ->first();
-
-        $subject = $request->subject;
-        $message = $request->subject . "<br>" . $request->phoneNumber . "<br>" . $request->name . "<br>" . $request->email .
-            "<br>" . $request->date . " " . $request->time . "<br>" . $request->hoursCount . "<br>" . $request->totalPriceLabel;
-
-        // initialize a new mail
-        $mail = new PHPMailer(true);
-        $mail->CharSet = 'UTF-8';
-        $mail->Encoding = 'base64';
-
-        // if smtp status == 1, then set some value for PHPMailer
-        if ($info->smtp_status == 1) {
-            $mail->isSMTP();
-            $mail->Host = $info->smtp_host;
-            $mail->SMTPAuth = true;
-            $mail->Username = $info->smtp_username;
-            $mail->Password = $info->smtp_password;
-
-            if ($info->encryption == 'TLS') {
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            }
-
-            $mail->Port = $info->smtp_port;
-        }
-
-        // finally add other informations and send the mail
-        try {
-            $mail->setFrom($info->from_mail, $info->from_name);
-            $mail->addAddress("info@noorakram.com");
-
-            $mail->isHTML(true);
-            $mail->Subject = $subject;
-            $mail->Body = $message;
-
-            $mail->send();
-        } catch (Exception $e) {
-            $request->session()->flash('warning', 'لم يتم ارسال البريد الالكتروني');
-
-            return redirect()->back();
-        }
-
-
-        if ($request->paymentMethod == "cash") {
-
-            //https://wa.me/+9647726908090
-            return redirect()->to("https://wa.me/+9647726908090");
-        } elseif ($request->paymentMethod == "zainCash") {
-
-            $zaincash = new ZainCash();
-            //The total price of your order in Iraqi Dinar only like 1000 (if in dollar, multiply it by dollar-dinar exchange rate, like 1*1500=1500)
-            //Please note that it MUST BE MORE THAN 1000 IQD
-            $amount = $totalPrice;
-
-            //Type of service you provide, like 'Books', 'ecommerce cart', 'Hosting services', ...
-            $service_type = "appointment";
-
-            //Order id, you can use it to help you in tagging transactions with your website IDs, if you have no order numbers in your website, leave it 1
-            $order_id = time();
-
-            $payload = $zaincash->request($amount, $service_type, $order_id);
-
-            return $payload;
-
-        } elseif ($request->paymentMethod == "master") {
-            $http = Http::withHeaders([
-                "Authorization" => "39cd434c94fa49e99646b58f31bbdb88"
-            ])
-                ->post("https://api.uat.pay.qi.iq/api/v0/transactions/business/token", [
-                    "order" => [
-                        "amount" => $request->totalPrice,
-                        "currency" => "IQD",
-                        "orderId" => "" . time() . ""
-                    ],
-                    "timestamp" => date("Y-m-d H:i:s"),
-                    "successUrl" => env("APP_URL") . "/appointment/book/success",
-                    "failureUrl" => env("APP_URL") . "/appointment/book/cancel",
-                    "cancelUrl" => "https://google.com" . "/appointment/book/cancel"
-                ]);
-
-            if ($http["success"]) {
-                return redirect()->to($http["data"]["link"]);
-            }
-
-        }
-
-
+    private function getAvailableTimes(): array
+    {
+        return DB::table('appointment_time_open')->select('time')->distinct()->pluck('time')->toArray();
     }
 
 
-    public function paymentSuccess()
+    public function store(Request $request)
     {
-        $language = $this->getLanguage();
 
 
-        $queryResult['seoInfo'] = $language->seoInfo()->select('meta_keyword_contact', 'meta_description_contact')->first();
+        $validator = Validator::make($request->all(), [
+            'subject' => 'required',
+            'date' => 'required',
+            'time' => 'required',
+            'session_type' => 'required',
+            'session_duration' => 'required',
+            'name' => auth()->check() ? '' : 'required',
+            'email' => auth()->check() ? '' : ['required', "email"],
+            'phone_number' => auth()->check() ? '' : ['required', 'regex:/^(\+964|0)?78\d{8}$/'],
+        ], [
+            'subject.required' => 'يرجى كتابة موضوع الجلسة',
+            'date.required' => 'التاريخ مطلوب',
+            'time.required' => 'يرجى تحديد وقت الجلسة',
+            'session_type.required' => 'يرجى تحديد نوع الجلسة',
+            'session_duration.required' => 'يرجى تحديد مدة الجلسة',
+            'name.required' => 'الاسم مطلوب',
+            'email.required' => 'البريد الالكتروني مطلوب',
+            'phone_number.required' => 'رقم الهاتف مطلوب',
+            'phone_number.regex' => 'رقم الهاتف غير صالح'
+        ]);
 
-        $queryResult['pageHeading'] = "contact";
-        $queryResult['paidVia'] = "Master";
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator)->withInput();
+        }
 
-        $queryResult['bgImg'] = $this->getBreadcrumb();
-        return view("frontend.payment.success", $queryResult);
+
+        $subject = $request->input('subject');
+        $date = $request->input('date');
+        $time = $request->input('time');
+        $session_type = $request->input('session_type');
+        $session_duration = $request->input('session_duration');
+        $name = $request->input('name') ?? auth()->user()->first_name . ' ' . auth()->user()->last_name;
+        $email = $request->input('email') ?? auth()->user()->email;
+        $phone_number = $request->input('phone_number') ?? auth()->user()->contact_number;
+        $user_id = auth()->check() ? auth()->user()->id : null;
+
+
+        $appointment = DB::table('appointments')->insertGetId([
+            'subject' => $subject,
+            'date' => $date,
+            'start_time' => $time,
+            'end_time' => Carbon::parse($time)->addMinutes($session_duration)->format('H:i:s'),
+            'session_type' => $session_type,
+            'session_duration' => $session_duration,
+            'name' => $name,
+            'email' => $email,
+            'phone_number' => $phone_number,
+            'user_id' => $user_id,
+            'order_id' => self::generateOrderID($user_id)
+        ]);
+
+        if ($appointment) {
+            $appointment = DB::table('appointments')->where('id', $appointment)->first();
+            return redirect()->route('payment.checkout', ['order_id' => $appointment->order_id, "orderType" => "appointment"])->with('success', 'تم حجز الجلسة بنجاح');
+            // return redirect()->back()->with('success', 'تم حجز الجلسة بنجاح');
+        } else {
+            return redirect()->back()->with('error', 'حدث خطأ ما يرجى المحاولة لاحقا');
+        }
+
+
     }
 
 

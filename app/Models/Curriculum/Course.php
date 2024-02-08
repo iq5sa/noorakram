@@ -14,54 +14,57 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Course extends Model
 {
-    use HasFactory;
+  use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
-    protected $fillable = [
-        'thumbnail_image',
-        'video_link',
-        'cover_image',
-        'pricing_type',
-        'previous_price',
-        'current_price',
-        'status',
-        'is_featured',
-        'average_rating',
-        'duration',
-        'certificate_status',
-        'video_watching',
-        'quiz_completion',
-        'certificate_title',
-        'certificate_text',
-        'min_quiz_score'
-    ];
+  /**
+   * The attributes that are mass assignable.
+   *
+   * @var array
+   */
+  protected $fillable = [
+    'thumbnail_image',
+    'video_link',
+    'cover_image',
+    'pricing_type',
+    'previous_price',
+    'current_price',
+    'status',
+    'is_featured',
+    'average_rating',
+    'duration',
+    'certificate_status',
+    'video_watching',
+    'quiz_completion',
+    'certificate_title',
+    'certificate_text',
+    'min_quiz_score',
+    "type"
+  ];
 
-    public function information(): HasMany
-    {
-        return $this->hasMany(CourseInformation::class);
-    }
+  public function information(): HasMany
+  {
+    return $this->hasMany(CourseInformation::class);
+  }
 
-    public function faq(): HasMany
-    {
-        return $this->hasMany(CourseFaq::class);
-    }
+  public function faq(): HasMany
+  {
+    return $this->hasMany(CourseFaq::class);
+  }
 
-    public function enrolment(): HasMany
-    {
-        return $this->hasMany(CourseEnrolment::class, 'course_id', 'id');
-    }
+  public function enrolment(): HasMany
+  {
+    return $this->hasMany(CourseEnrolment::class, 'course_id', 'id');
+  }
 
-    public function review(): HasMany
-    {
-        return $this->hasMany(CourseReview::class, 'course_id', 'id');
-    }
+  public function review(): HasMany
+  {
+    return $this->hasMany(CourseReview::class, 'course_id', 'id');
+  }
 
-    public function quizScore(): HasMany
-    {
-        return $this->hasMany(QuizScore::class, 'course_id', 'id');
-    }
+  public function quizScore(): HasMany
+  {
+    return $this->hasMany(QuizScore::class, 'course_id', 'id');
+  }
+
+
 }

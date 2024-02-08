@@ -9,18 +9,14 @@ use App\Models\Curriculum\CourseEnrolment;
 class CashController extends Controller
 {
 
-    public function pay($cashCode, $order_id)
+    public function pay($cashCode, $order_id): array
     {
         $cashCode = CashCode::where("code", "=", $cashCode)->get();
         $enrolment = CourseEnrolment::where("order_id", "=", $order_id)->get();
 
-        if ($cashCode->count() == 0) {
-            return redirect()->back()->with('error', 'كود الشراء غير صحيح');
-        }
+        if ($cashCode->count() == 0 || $cashCode->first()->expire == 1) {
+            return ["error" => "كود الشراء غير صحيح", "url" => null];
 
-        //check expire
-        if ($cashCode->first()->expire == 1) {
-            return redirect()->back()->with('error', 'كود الشراء غير صحيح');
         }
 
         $updateEnrolment = CourseEnrolment::find($enrolment->first()->id);
@@ -32,6 +28,7 @@ class CashController extends Controller
         $findCode->expire = 1;
         $findCode->save();
 
-        return redirect()->route('user.my_course.curriculum', ['id' => $enrolment->first()->course_id]);
+
+        return ["error" => null, "url" => route('user.my_course.curriculum', ['id' => $enrolment->first()->course_id])];
     }
 }

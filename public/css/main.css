@@ -3781,11 +3781,6 @@ p {
     margin-right: 30px;
 }
 
-.alert-danger {
-    background-color: transparent !important;
-    border-radius: 50rem !important;
-}
-
 .course-details-area {
     padding-top: 30px;
     padding-bottom: 120px;

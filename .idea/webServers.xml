@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="0532d6ed-4e06-46ec-bebb-29485c418d03" name="live">
+        <fileTransfer rootFolder="/applications/dbpebqfgum/public_html" accessType="SFTP" host="136.244.82.170" port="22" sshConfigId="0aa4e0fe-3393-4f20-838b-b9a0d9dc8edb" sshConfig="master_xbaddxvxrm@136.244.82.170:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
