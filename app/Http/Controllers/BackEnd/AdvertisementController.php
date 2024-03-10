@@ -11,79 +11,79 @@ use Illuminate\Http\Request;
 
 class AdvertisementController extends Controller
 {
-    public function index()
-    {
-        $ads = Advertisement::orderBy('id', 'desc')->get();
+  public function index()
+  {
+    $ads = Advertisement::orderBy('id', 'desc')->get();
 
-        return view('backend.advertisement.index', compact('ads'));
+    return view('backend.advertisement.index', compact('ads'));
+  }
+
+  public function store(StoreRequest $request)
+  {
+    if ($request->hasFile('image')) {
+      $imageName = UploadFile::store('./img/advertisements/', $request->file('image'));
     }
 
-    public function store(StoreRequest $request)
-    {
-        if ($request->hasFile('image')) {
-            $imageName = UploadFile::store('./img/advertisements/', $request->file('image'));
-        }
+    Advertisement::create($request->except('image') + [
+        'image' => $request->hasFile('image') ? $imageName : null
+      ]);
 
-        Advertisement::create($request->except('image') + [
-                'image' => $request->hasFile('image') ? $imageName : null
-            ]);
+    $request->session()->flash('success', 'New advertisement added successfully!');
 
-        $request->session()->flash('success', 'New advertisement added successfully!');
+    return response()->json(['status' => 'success'], 200);
+  }
 
-        return response()->json(['status' => 'success'], 200);
+  public function update(UpdateRequest $request)
+  {
+    $ad = Advertisement::find($request->id);
+
+    if ($request->hasFile('image')) {
+      $imageName = UploadFile::update('./img/advertisements/', $request->file('image'), $ad->image);
     }
 
-    public function update(UpdateRequest $request)
-    {
-        $ad = Advertisement::find($request->id);
-
-        if ($request->hasFile('image')) {
-            $imageName = UploadFile::update('./img/advertisements/', $request->file('image'), $ad->image);
-        }
-
-        if ($request->ad_type == 'adsense') {
-            // if ad type change to google adsense then delete the image from local storage.
-            @unlink('./img/advertisements/' . $ad->image);
-        }
-
-        $ad->update($request->except('image') + [
-                'image' => $request->hasFile('image') ? $imageName : $ad->image
-            ]);
-
-        $request->session()->flash('success', 'Advertisement updated successfully!');
-
-        return response()->json(['status' => 'success'], 200);
+    if ($request->ad_type == 'adsense') {
+      // if ad type change to google adsense then delete the image from local storage.
+      @unlink('./img/advertisements/' . $ad->image);
     }
 
-    public function destroy($id)
-    {
-        $ad = Advertisement::find($id);
+    $ad->update($request->except('image') + [
+        'image' => $request->hasFile('image') ? $imageName : $ad->image
+      ]);
 
-        if ($ad->ad_type == 'banner') {
-            @unlink('img/advertisements/' . $ad->image);
-        }
+    $request->session()->flash('success', 'Advertisement updated successfully!');
 
-        $ad->delete();
+    return response()->json(['status' => 'success'], 200);
+  }
 
-        return redirect()->back()->with('success', 'Advertisement deleted successfully!');
+  public function destroy($id)
+  {
+    $ad = Advertisement::find($id);
+
+    if ($ad->ad_type == 'banner') {
+      @unlink('img/advertisements/' . $ad->image);
     }
 
-    public function bulkDestroy(Request $request)
-    {
-        $ids = $request->ids;
+    $ad->delete();
 
-        foreach ($ids as $id) {
-            $ad = Advertisement::find($id);
+    return redirect()->back()->with('success', 'Advertisement deleted successfully!');
+  }
 
-            if ($ad->ad_type == 'banner') {
-                @unlink('img/advertisements/' . $ad->image);
-            }
+  public function bulkDestroy(Request $request)
+  {
+    $ids = $request->ids;
 
-            $ad->delete();
-        }
+    foreach ($ids as $id) {
+      $ad = Advertisement::find($id);
 
-        $request->session()->flash('success', 'Advertisements deleted successfully!');
+      if ($ad->ad_type == 'banner') {
+        @unlink('img/advertisements/' . $ad->image);
+      }
 
-        return response()->json(['status' => 'success'], 200);
+      $ad->delete();
     }
+
+    $request->session()->flash('success', 'Advertisements deleted successfully!');
+
+    return response()->json(['status' => 'success'], 200);
+  }
 }

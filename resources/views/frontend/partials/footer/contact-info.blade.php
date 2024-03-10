@@ -13,8 +13,8 @@
                         info@noorakram.com
                     </a>
                 </li>
-                <li><a href="{{ 'tel:+964 772 690 8090'}}"><i class="fal fa-phone-office"></i>
-                        <span style="direction: ltr">+964 772 690 8090</span> </a></li>
+                <li><a href="{{ 'tel:+9647726908090'}}"><i class="fal fa-phone-office"></i>
+                        <span style="direction: ltr">07726908090</span> </a></li>
                 <li><a href="#"><i class="fal fa-map-marker-alt"></i>بغداد / العراق</a></li>
             </ul>
         </div>

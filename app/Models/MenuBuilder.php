@@ -7,17 +7,17 @@ use Illuminate\Database\Eloquent\Model;
 
 class MenuBuilder extends Model
 {
-    use HasFactory;
+  use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
-    protected $fillable = ['language_id', 'menus'];
+  /**
+   * The attributes that are mass assignable.
+   *
+   * @var array
+   */
+  protected $fillable = ['language_id', 'menus'];
 
-    public function languageInfo()
-    {
-        return $this->belongsTo(Language::class, 'language_id', 'id');
-    }
+  public function languageInfo()
+  {
+    return $this->belongsTo(Language::class, 'language_id', 'id');
+  }
 }

@@ -10,16 +10,16 @@ use Illuminate\Database\Eloquent\Model;
  */
 class PaymentMethods extends Model
 {
-    use HasFactory;
+  use HasFactory;
 
-    public $timestamps = false;
-    protected $table = "payment_methods";
+  public $timestamps = false;
+  protected $table = "payment_methods";
 
-    // as the timestamps is not needed, so make it false.
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
-    protected $fillable = ['name', 'keyword', 'information', 'status'];
+  // as the timestamps is not needed, so make it false.
+  /**
+   * The attributes that are mass assignable.
+   *
+   * @var array
+   */
+  protected $fillable = ['name', 'keyword', 'information', 'status'];
 }

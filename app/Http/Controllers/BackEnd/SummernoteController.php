@@ -8,17 +8,17 @@ use Illuminate\Http\Request;
 
 class SummernoteController extends Controller
 {
-    public function upload(Request $request)
-    {
-        $imageName = UploadFile::store('./img/summernotes/', $request->file('image'));
+  public function upload(Request $request)
+  {
+    $imageName = UploadFile::store('./img/summernotes/', $request->file('image'));
 
-        return url('/') . '/img/summernotes/' . $imageName;
-    }
+    return url('/') . '/img/summernotes/' . $imageName;
+  }
 
-    public function remove(Request $request)
-    {
-        @unlink('img/summernotes/' . $request->image);
+  public function remove(Request $request)
+  {
+    @unlink('img/summernotes/' . $request->image);
 
-        return response()->json(['data' => 'Image removed successfully!'], 200);
-    }
+    return response()->json(['data' => 'Image removed successfully!'], 200);
+  }
 }

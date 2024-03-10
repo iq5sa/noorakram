@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\FrontEnd;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\MailController;
 use App\Http\Helpers\UploadFile;
 use App\Http\Requests\UserProfileRequest;
-use App\Models\BasicSettings\MailTemplate;
 use App\Models\Curriculum\Course;
 use App\Models\Curriculum\CourseEnrolment;
 use App\Models\Curriculum\CourseInformation;
@@ -25,15 +25,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use PHPMailer\PHPMailer\Exception;
-use PHPMailer\PHPMailer\PHPMailer;
 use Symfony\Component\HttpFoundation\File\Exception\FileNotFoundException;
 
 class UserController extends Controller
 {
-
     public function loginSubmit(Request $request)
     {
         if ($request->session()->has('redirectTo')) {
@@ -42,14 +41,12 @@ class UserController extends Controller
             $redirectURL = null;
         }
 
-
         // get the email and password which has provided by the user
         $credentials = $request->only('email', 'password');
         $validator = $this->validateLogin($credentials);
         if ($validator->fails()) {
             return redirect()->back()->withErrors($validator)->withInput();
         }
-
 
         // login attempt
         if (Auth::guard('web')->attempt($credentials)) {
@@ -72,7 +69,6 @@ class UserController extends Controller
                 // logout auth user as condition not satisfied
                 Auth::guard('web')->logout();
 
-
                 return redirect()->route('user.login');
             }
 
@@ -93,8 +89,7 @@ class UserController extends Controller
 
         return redirect()->back()->withInput();
 
-
-//        return redirect()->back()->withErrors($errorMsg)->withInput(['email' => $request->old('email'), 'password' => $request->old('email')]);
+        //        return redirect()->back()->withErrors($errorMsg)->withInput(['email' => $request->old('email'), 'password' => $request->old('email')]);
 
     }
 
@@ -104,19 +99,16 @@ class UserController extends Controller
 
         $rules = [
             'email' => 'required|email:rfc,dns',
-            'password' => 'required'
+            'password' => 'required',
         ];
-
 
         $messages = [
-            'email.required' => "البريد الإلكتروني مطلوب",
-            'email.email' => "البريد الإلكتروني غير صحيح",
-            'password.required' => "كلمة المرور مطلوبة",
+            'email.required' => 'البريد الإلكتروني مطلوب',
+            'email.email' => 'البريد الإلكتروني غير صحيح',
+            'password.required' => 'كلمة المرور مطلوبة',
         ];
 
-
         return Validator::make($credentials, $rules, $messages);
-
 
     }
 
@@ -139,8 +131,8 @@ class UserController extends Controller
             'email' => [
                 'required',
                 'email:rfc,dns',
-                new MatchEmailRule('user')
-            ]
+                new MatchEmailRule('user'),
+            ],
         ];
 
         $validator = Validator::make($request->all(), $rules);
@@ -150,58 +142,17 @@ class UserController extends Controller
         }
 
         $user = User::where('email', $request->email)->first();
+        $name = $user->first_name.' '.$user->last_name;
+        $link = url('user/reset-password');
 
-        // first, get the mail template information from db
-        $mailTemplate = MailTemplate::where('mail_type', 'reset_password')->first();
-        $mailSubject = $mailTemplate->mail_subject;
-        $mailBody = $mailTemplate->mail_body;
-
-        // second, send a password reset link to user via email
-        $info = DB::table('basic_settings')
-            ->select('website_title', 'smtp_status', 'smtp_host', 'smtp_port', 'encryption', 'smtp_username', 'smtp_password', 'from_mail', 'from_name')
-            ->first();
-
-        $name = $user->first_name . ' ' . $user->last_name;
-
-        $link = '<a href=' . url("user/reset-password") . '>اضغط هنا</a>';
-
-        $mailBody = str_replace('{customer_name}', $name, $mailBody);
-        $mailBody = str_replace('{password_reset_link}', $link, $mailBody);
-        $mailBody = str_replace('{website_title}', $info->website_title, $mailBody);
-
-        // initialize a new mail
-        $mail = new PHPMailer(true);
-        $mail->CharSet = 'UTF-8';
-        $mail->Encoding = 'base64';
-
-        // if smtp status == 1, then set some value for PHPMailer
-        if ($info->smtp_status == 1) {
-            $mail->isSMTP();
-            $mail->Host = $info->smtp_host;
-            $mail->SMTPAuth = true;
-            $mail->Username = $info->smtp_username;
-            $mail->Password = $info->smtp_password;
-
-            if ($info->encryption == 'TLS') {
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            }
-
-            $mail->Port = $info->smtp_port;
-        }
-
-        // finally add other informations and send the mail
         try {
-            $mail->setFrom($info->from_mail, $info->from_name);
-            $mail->addAddress($request->email);
-
-            $mail->isHTML(true);
-            $mail->Subject = $mailSubject;
-            $mail->Body = $mailBody;
-
-            $mail->send();
-
+            $mail = new MailController();
+            $mail = $mail->resetPassword($user->email, $link, $name);
             $request->session()->flash('success', ' تم إرسال البريد الإلكتروني بنجاح، تحقق من بريدك ');
+
         } catch (Exception $e) {
+
+            Log::error($e->getMessage());
             $request->session()->flash('error', 'حدثت مشكلة عند الإرسال يرجى المحاولة لحقاً');
         }
 
@@ -225,7 +176,7 @@ class UserController extends Controller
 
         $rules = [
             'new_password' => 'required|confirmed',
-            'new_password_confirmation' => 'required'
+            'new_password_confirmation' => 'required',
         ];
 
         $messages = [
@@ -242,7 +193,7 @@ class UserController extends Controller
         $user = User::where('email', $emailAddress)->first();
 
         $user->update([
-            'password' => Hash::make($request->new_password)
+            'password' => Hash::make($request->new_password),
         ]);
 
         $request->session()->flash('success', '.تم تحديث كلمة المرور بنجاح');
@@ -256,9 +207,9 @@ class UserController extends Controller
 
         $queryResult['seoInfo'] = $language->seoInfo()->select('meta_keyword_signup', 'meta_description_signup')->first();
 
-        $queryResult['pageHeading'] = "إنشاء حساب";
+        $queryResult['pageHeading'] = 'إنشاء حساب';
 
-        $queryResult['breadcrumbImg'] = "signup.png";
+        $queryResult['breadcrumbImg'] = 'signup.png';
 
         $queryResult['recaptchaInfo'] = DB::table('basic_settings')->select('google_recaptcha_status')->first();
 
@@ -273,19 +224,18 @@ class UserController extends Controller
             'username' => 'required|unique:users|max:255',
             'email' => 'required|email:rfc,dns|unique:users|max:255',
             'password' => 'required|confirmed',
-            'password_confirmation' => 'required'
+            'password_confirmation' => 'required',
         ];
 
         $messages = [
             'password_confirmation.required' => 'حقل تأكيد كلمة المرور مطلوب',
-            'username.required' => "اسم المستخدم مطلوب",
-            'username.unique' => "اسم المستخدم محجوز",
-            'email.required' => "البريد الإلكتروني مطلوب",
-            'email.unique' => "البريد الإلكتروني مستخدم",
-            'password.required' => "كلمة المرور مطلوبة",
-            'password.confirmed' => "كلمة المرور غير متطابقة",
+            'username.required' => 'اسم المستخدم مطلوب',
+            'username.unique' => 'اسم المستخدم محجوز',
+            'email.required' => 'البريد الإلكتروني مطلوب',
+            'email.unique' => 'البريد الإلكتروني مستخدم',
+            'password.required' => 'كلمة المرور مطلوبة',
+            'password.confirmed' => 'كلمة المرور غير متطابقة',
         ];
-
 
         $validator = Validator::make($request->all(), $rules, $messages);
 
@@ -302,72 +252,18 @@ class UserController extends Controller
         $randStr = Str::random(20);
 
         // second, generate a token
-        $token = md5($randStr . $request->username . $request->email);
+        $token = md5($randStr.$request->username.$request->email);
 
         $user->verification_token = $token;
         $user->save();
 
         // send a mail to user for verify his/her email address
-        $this->sendVerificationMail($request, $token);
+        $mail = new MailController();
+        $mail->verificationEmail($user->email, url('user/signup-verify/'.$token));
+
+        $request->session()->flash('success', 'يرجى العلم أنه تم إرسال رسالة تحقق إلى بريدك الإلكتروني. يرجى فحص صندوق الوارد الخاص بك لتأكيد استلامها واتباع الخطوات المطلوبة لاستكمال عملية التحقق. شكرًا لتعاونكم.');
 
         return redirect()->back();
-    }
-
-    public function sendVerificationMail(Request $request, $token)
-    {
-        // first get the mail template information from db
-        $mailTemplate = MailTemplate::where('mail_type', 'verify_email')->first();
-        $mailSubject = $mailTemplate->mail_subject;
-        $mailBody = $mailTemplate->mail_body;
-
-        // second get the website title & mail's smtp information from db
-        $info = DB::table('basic_settings')
-            ->select('website_title', 'smtp_status', 'smtp_host', 'smtp_port', 'encryption', 'smtp_username', 'smtp_password', 'from_mail', 'from_name')
-            ->first();
-
-        $link = '<a href=' . url("user/signup-verify/" . $token) . '>اضغط هنا</a>';
-
-        $mailBody = str_replace('{username}', $request->username, $mailBody);
-        $mailBody = str_replace('{verification_link}', $link, $mailBody);
-        $mailBody = str_replace('{website_title}', $info->website_title, $mailBody);
-
-        // initialize a new mail
-        $mail = new PHPMailer(true);
-        $mail->CharSet = 'UTF-8';
-        $mail->Encoding = 'base64';
-
-        // if smtp status == 1, then set some value for PHPMailer
-        if ($info->smtp_status == 1) {
-            $mail->isSMTP();
-            $mail->Host = $info->smtp_host;
-            $mail->SMTPAuth = true;
-            $mail->Username = $info->smtp_username;
-            $mail->Password = $info->smtp_password;
-
-            if ($info->encryption == 'TLS') {
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            }
-
-            $mail->Port = $info->smtp_port;
-        }
-
-        // finally add other information and send the mail
-        try {
-            $mail->setFrom($info->from_mail, $info->from_name);
-            $mail->addAddress($request->email);
-
-            $mail->isHTML(true);
-            $mail->Subject = $mailSubject;
-            $mail->Body = $mailBody;
-
-            $mail->send();
-
-            $request->session()->flash('success', 'تم ارسال رمز التحقق الى بريدك الالكتروني. يرجى التحقق من صندوق البريد');
-        } catch (Exception $e) {
-            $request->session()->flash('error', 'حدث خطأ ما عند ارسال رمز التأكيد');
-        }
-
-        return;
     }
 
     public function signupVerify(Request $request, $token)
@@ -379,10 +275,10 @@ class UserController extends Controller
             $user->update([
                 'email_verified_at' => date('Y-m-d H:i:s'),
                 'status' => 1,
-                'verification_token' => null
+                'verification_token' => null,
             ]);
 
-            $request->session()->flash('success', 'تم تأكيد كلمة المرور');
+            $request->session()->flash('success', 'تم تأكيد كلمة البريد، الان يمكنك استخدام الموقع والاستفادة من الدورات.');
 
             // after email verification, authenticate this user
             Auth::guard('web')->login($user);
@@ -401,9 +297,9 @@ class UserController extends Controller
 
         $queryResult['seoInfo'] = $language->seoInfo()->select('meta_keyword_login', 'meta_description_login')->first();
 
-        $queryResult['pageHeading'] = "تسجيل الدخول";
+        $queryResult['pageHeading'] = 'تسجيل الدخول';
 
-        $queryResult['breadcrumbImg'] = "signup.png";
+        $queryResult['breadcrumbImg'] = 'signup.png';
 
         $queryResult['bgImg'] = $this->getBreadcrumb();
 
@@ -424,8 +320,8 @@ class UserController extends Controller
 
     public function redirectToDashboard()
     {
-        $queryResult['pageHeading'] = "لوحة ألإدارة";
-        $queryResult['breadcrumbImg'] = "courses.png";
+        $queryResult['pageHeading'] = 'لوحة ألإدارة';
+        $queryResult['breadcrumbImg'] = 'courses.png';
 
         $user = Auth::guard('web')->user();
 
@@ -438,8 +334,8 @@ class UserController extends Controller
     {
         $language = $this->getLanguage();
 
-        $queryResult['breadcrumbImg'] = "courses.png";
-        $queryResult['pageHeading'] = "courses.png";
+        $queryResult['breadcrumbImg'] = 'courses.png';
+        $queryResult['pageHeading'] = 'courses.png';
 
         $user = Auth::guard('web')->user();
 
@@ -465,8 +361,8 @@ class UserController extends Controller
                 ->first();
 
             $module = $courseInfo->module()->where('status', 'published')->first();
-            $lesson = !empty($module) ? $module->lesson()->where('status', 'published')->first() : NULL;
-            $enrol['lesson_id'] = !empty($lesson) ? $lesson->id : NULL;
+            $lesson = ! empty($module) ? $module->lesson()->where('status', 'published')->first() : null;
+            $enrol['lesson_id'] = ! empty($lesson) ? $lesson->id : null;
         });
 
         $queryResult['enrolments'] = $enrols;
@@ -504,22 +400,22 @@ class UserController extends Controller
 
     public function curriculum($id, Request $request)
     {
-        if (!Auth::guard('web')->check() && !Auth::guard('admin')->check()) {
+        if (! Auth::guard('web')->check() && ! Auth::guard('admin')->check()) {
             return redirect()->route('user.login');
         }
 
         $language = $this->getLanguage();
 
         $course = Course::find($id);
-        if ($course == null) {
+        if (! $course) {
             abort(404);
         }
-        $enrollment = CourseEnrolment::where("user_id", "=", Auth::id())->where("course_id", "=", $id)->get();
+        $enrollment = CourseEnrolment::where('user_id', '=', Auth::id())->where('course_id', '=', $id)->get();
         if ($enrollment->count() == 0) {
             abort(404);
         }
 
-        if ($enrollment->first()->payment_status !== "completed") {
+        if ($enrollment->first()->payment_status !== 'completed') {
             abort(404);
         }
 
@@ -541,7 +437,7 @@ class UserController extends Controller
 
         $lesson = Lesson::find($lessonId);
 
-        if (!empty($lesson)) {
+        if (! empty($lesson)) {
             $queryResult['lessonTitle'] = $lesson->title;
             $queryResult['lessonContents'] = $lesson->content()->orderBy('order_no', 'asc')->get();
 
@@ -550,28 +446,29 @@ class UserController extends Controller
 
             $lesson = $modules->first()->lesson->first();
 
-            return redirect()->to(route("user.my_course.curriculum", ["id" => $id]) . "?lesson_id=$lesson->id");
+            return redirect()->to(route('user.my_course.curriculum', ['id' => $id])."?lesson_id=$lesson->id");
         }
 
         // update lesson completion status
         $lessonCompleted = false;
 
         // when certificate system is enabled then execute this code
-        if (!empty($lesson)) {
+        if (! empty($lesson)) {
             if ($course->certificate_status == 1) {
                 $totalVideo = $lesson->content()->where('type', 'video')->count();
+
                 $totalQuiz = $lesson->content()->where('type', 'quiz')->count();
 
                 if ($course->video_watching == 0 && ($totalVideo > 0 && $totalQuiz == 0)) {
                     // if video watching disabled and, lesson has only video then complete the lesson
                     $lessonCompleted = true;
-                } else if ($course->quiz_completion == 0 && ($totalQuiz > 0 && $totalVideo == 0)) {
+                } elseif ($course->quiz_completion == 0 && ($totalQuiz > 0 && $totalVideo == 0)) {
                     // if quiz completion disabled and, lesson has only quiz then complete the lesson
                     $lessonCompleted = true;
-                } else if (($course->video_watching == 0 && $course->quiz_completion == 0) && ($totalVideo > 0 && $totalQuiz > 0)) {
+                } elseif (($course->video_watching == 0 && $course->quiz_completion == 0) && ($totalVideo > 0 && $totalQuiz > 0)) {
                     // if both video watching & quiz completion disabled and, lesson has both video & quiz then complete the lesson
                     $lessonCompleted = true;
-                } else if ($totalVideo == 0 && $totalQuiz == 0) {
+                } elseif ($totalVideo == 0 && $totalQuiz == 0) {
                     // if lesson does not have both video & quiz then complete the lesson
                     $lessonCompleted = true;
                 }
@@ -604,7 +501,7 @@ class UserController extends Controller
     {
         $lessonContent = LessonContent::find($id);
 
-        $pathToFile = './file/lesson-contents/' . $lessonContent->file_unique_name;
+        $pathToFile = './file/lesson-contents/'.$lessonContent->file_unique_name;
 
         try {
             return response()->download($pathToFile, $lessonContent->file_original_name);
@@ -688,10 +585,10 @@ class UserController extends Controller
         $quizCompleted = false;
         $lessonCompleted = false;
 
-        $courseId = (int)$request['courseId'];
+        $courseId = (int) $request['courseId'];
         $course = Course::find($courseId);
 
-        $lessonId = (int)$request['lessonId'];
+        $lessonId = (int) $request['lessonId'];
         $lesson = Lesson::find($lessonId);
 
         // if video watching enabled then execute this code
@@ -715,7 +612,7 @@ class UserController extends Controller
             $quizScore = QuizScore::select('score')->where('course_id', $courseId)->where('lesson_id', $lessonId)->where('user_id', Auth::guard('web')->user()->id)->first();
 
             if ($totalQuiz > 0) {
-                if (!empty($quizScore) && $quizScore->score >= $course->min_quiz_score) {
+                if (! empty($quizScore) && $quizScore->score >= $course->min_quiz_score) {
                     $quizCompleted = true;
                 }
             } else {
@@ -738,13 +635,13 @@ class UserController extends Controller
         if (($course->video_watching == 1 && $course->quiz_completion == 0) && $videoCompleted == true) {
             // only video watching enabled, and watched all the videos
             $lessonCompleted = true;
-        } else if (($course->video_watching == 0 && $course->quiz_completion == 1) && $quizCompleted == true) {
+        } elseif (($course->video_watching == 0 && $course->quiz_completion == 1) && $quizCompleted == true) {
             // only quiz completion enabled, and passed the quizzes
             $lessonCompleted = true;
-        } else if (($course->video_watching == 1 && $course->quiz_completion == 1) && ($videoCompleted == true && $quizCompleted == true)) {
+        } elseif (($course->video_watching == 1 && $course->quiz_completion == 1) && ($videoCompleted == true && $quizCompleted == true)) {
             // both video watching & quiz completion enabled, and both is completed
             $lessonCompleted = true;
-        } else if ($course->video_watching == 0 && $course->quiz_completion == 0) {
+        } elseif ($course->video_watching == 0 && $course->quiz_completion == 0) {
             // both video watching & quiz completion disabled
             $lessonCompleted = true;
         }
@@ -792,11 +689,11 @@ class UserController extends Controller
 
             // get student name
             $authUser = Auth::guard('web')->user();
-            $studentName = $authUser->first_name . ' ' . $authUser->last_name;
+            $studentName = $authUser->first_name.' '.$authUser->last_name;
 
             // get course duration
             $duration = Carbon::parse($course->duration);
-            $courseDuration = $duration->format('h') . ' hours';
+            $courseDuration = $duration->format('h').' hours';
 
             // get course title
             $courseTitle = $courseInfo->title;
@@ -838,9 +735,9 @@ class UserController extends Controller
         }
 
         $authUser->update($request->except('image', 'edit_profile_status') + [
-                'image' => $request->exists('image') ? $imageName : $authUser->image,
-                'edit_profile_status' => 1
-            ]);
+            'image' => $request->exists('image') ? $imageName : $authUser->image,
+            'edit_profile_status' => 1,
+        ]);
 
         $request->session()->flash('success', 'تم تحديث ملفك الشخصي بنجاح.');
 
@@ -859,15 +756,15 @@ class UserController extends Controller
         $rules = [
             'current_password' => [
                 'required',
-                new MatchOldPasswordRule('user')
+                new MatchOldPasswordRule('user'),
             ],
             'new_password' => 'required|confirmed',
-            'new_password_confirmation' => 'required'
+            'new_password_confirmation' => 'required',
         ];
 
         $messages = [
             'new_password.confirmed' => 'عملية التحقق من كلمةالمرور لم تتم ',
-            'new_password_confirmation.required' => 'حقل تأكيد كلمة المرور مطلوب.'
+            'new_password_confirmation.required' => 'حقل تأكيد كلمة المرور مطلوب.',
         ];
 
         $validator = Validator::make($request->all(), $rules, $messages);
@@ -879,7 +776,7 @@ class UserController extends Controller
         $user = Auth::guard('web')->user();
 
         $user->update([
-            'password' => Hash::make($request->new_password)
+            'password' => Hash::make($request->new_password),
         ]);
 
         $request->session()->flash('success', 'تم تحديث كلمة المرور بنجاح.');
@@ -893,6 +790,4 @@ class UserController extends Controller
 
         return redirect()->route('user.login');
     }
-
-
 }

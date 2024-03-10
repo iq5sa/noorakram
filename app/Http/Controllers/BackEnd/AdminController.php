@@ -35,7 +35,7 @@ class AdminController extends Controller
     {
         $rules = [
             'username' => 'required',
-            'password' => 'required'
+            'password' => 'required',
         ];
 
         $validator = Validator::make($request->all(), $rules);
@@ -47,7 +47,7 @@ class AdminController extends Controller
         if (
             Auth::guard('admin')->attempt([
                 'username' => $request->username,
-                'password' => $request->password
+                'password' => $request->password,
             ])
         ) {
             $authAdmin = Auth::guard('admin')->user();
@@ -89,8 +89,8 @@ class AdminController extends Controller
             'email' => [
                 'required',
                 'email:rfc,dns',
-                new MatchEmailRule('admin')
-            ]
+                new MatchEmailRule('admin'),
+            ],
         ];
 
         $validator = Validator::make($request->all(), $rules);
@@ -105,7 +105,7 @@ class AdminController extends Controller
         $admin = Admin::where('email', $request->email)->first();
 
         $admin->update([
-            'password' => Hash::make($newPassword)
+            'password' => Hash::make($newPassword),
         ]);
 
         // send newly created password to admin via email
@@ -140,13 +140,13 @@ class AdminController extends Controller
 
             $mail->isHTML(true);
             $mail->Subject = 'Reset Password';
-            $mail->Body = 'Hello ' . $admin->first_name . ',<br/><br/>Your password has reset. Your new password is: ' . $newPassword . '<br/><br/>Now, you can login with your new password. You can change your password later.<br/><br/>Thank you.';
+            $mail->Body = 'Hello '.$admin->first_name.',<br/><br/>Your password has reset. Your new password is: '.$newPassword.'<br/><br/>Now, you can login with your new password. You can change your password later.<br/><br/>Thank you.';
 
             $mail->send();
 
             $request->session()->flash('success', 'A mail has been sent to your email address.');
         } catch (Exception $e) {
-            $request->session()->flash('warning', 'Mail could not be sent. Mailer Error: ' . $mail->ErrorInfo);
+            $request->session()->flash('warning', 'Mail could not be sent. Mailer Error: '.$mail->ErrorInfo);
         }
 
         return redirect()->back();
@@ -239,7 +239,7 @@ class AdminController extends Controller
 
         $rules = [];
 
-        if (!$request->filled('image') && is_null($admin->image)) {
+        if (! $request->filled('image') && is_null($admin->image)) {
             $rules['image'] = 'required';
         }
         if ($request->hasFile('image')) {
@@ -248,13 +248,13 @@ class AdminController extends Controller
 
         $rules['username'] = [
             'required',
-            Rule::unique('admins')->ignore($admin->id)
+            Rule::unique('admins')->ignore($admin->id),
         ];
 
         $rules['email'] = [
             'required',
             'email:rfc,dns',
-            Rule::unique('admins')->ignore($admin->id)
+            Rule::unique('admins')->ignore($admin->id),
         ];
 
         $rules['first_name'] = 'required';
@@ -276,7 +276,7 @@ class AdminController extends Controller
             'last_name' => $request->last_name,
             'image' => $request->hasFile('image') ? $imageName : $admin->image,
             'username' => $request->username,
-            'email' => $request->email
+            'email' => $request->email,
         ]);
 
         $request->session()->flash('success', 'Profile updated successfully!');
@@ -294,29 +294,29 @@ class AdminController extends Controller
         $rules = [
             'current_password' => [
                 'required',
-                new MatchOldPasswordRule('admin')
+                new MatchOldPasswordRule('admin'),
             ],
             'new_password' => 'required|confirmed',
-            'new_password_confirmation' => 'required'
+            'new_password_confirmation' => 'required',
         ];
 
         $messages = [
             'new_password.confirmed' => 'Password confirmation does not match.',
-            'new_password_confirmation.required' => 'The confirm new password field is required.'
+            'new_password_confirmation.required' => 'The confirm new password field is required.',
         ];
 
         $validator = Validator::make($request->all(), $rules, $messages);
 
         if ($validator->fails()) {
             return Response::json([
-                'errors' => $validator->getMessageBag()->toArray()
+                'errors' => $validator->getMessageBag()->toArray(),
             ], 400);
         }
 
         $admin = Auth::guard('admin')->user();
 
         $admin->update([
-            'password' => Hash::make($request->new_password)
+            'password' => Hash::make($request->new_password),
         ]);
 
         $request->session()->flash('success', 'Password updated successfully!');

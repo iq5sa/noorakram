@@ -7,5 +7,5 @@ use Illuminate\Database\Eloquent\Model;
 
 class AppointmentTimeOpen extends Model
 {
-    use HasFactory;
+  use HasFactory;
 }

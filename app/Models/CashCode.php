@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class CashCode extends Model
 {
-    use HasFactory;
+  use HasFactory;
 
-    protected $table = "cash_codes";
+  protected $table = "cash_codes";
 }
