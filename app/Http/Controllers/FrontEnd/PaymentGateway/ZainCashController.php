@@ -48,7 +48,7 @@ class ZainCashController extends Controller
 
                 return redirect()->route("payment.checkout", ["order_id" => $result->orderid,
                         "orderType" => "course"]
-                )->with("error", "لا توجد اموال كافي في حسابك");
+                )->with("error", "Not enough credit on balance");
             }
 
         }

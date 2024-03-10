@@ -21,7 +21,6 @@ class GoogleLogin extends Controller
     public function redirect(): \Symfony\Component\HttpFoundation\RedirectResponse|RedirectResponse
     {
         return Socialite::driver('google')->redirect();
-
     }
 
     public function redirectCallback(Request $request): Redirector|RedirectResponse|Application

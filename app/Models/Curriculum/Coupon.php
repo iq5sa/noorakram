@@ -26,10 +26,4 @@ class Coupon extends Model
         'start_date',
         'end_date'
     ];
-
-    public function isExpired()
-    {
-        return $this->end_date < now();
-    }
-
 }

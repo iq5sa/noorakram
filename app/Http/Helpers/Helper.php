@@ -129,3 +129,9 @@ if (!function_exists("remoteAsset")) {
     }
 }
 
+if (!function_exists('cdn')) {
+  function cdn($path): string
+  {
+    return env('CDN_ASSET') . '/'.$path;
+  }
+}

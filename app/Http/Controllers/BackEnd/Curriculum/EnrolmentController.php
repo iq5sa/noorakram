@@ -263,7 +263,7 @@ class EnrolmentController extends Controller
             })->when($paymentStatus, function ($query, $paymentStatus) {
                 return $query->where('payment_status', '=', $paymentStatus);
             })
-                ->orderByDesc('id');
+                ->whereNot("payment_method", null)->orderByDesc('id');
 
             Session::put('enrollment_report', $enrolments->get());
             $data['enrolments'] = $enrolments->paginate(10);

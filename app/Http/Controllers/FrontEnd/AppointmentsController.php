@@ -86,7 +86,7 @@ class AppointmentsController extends Controller
         $user_id = auth()->check() ? auth()->user()->id : null;
 
 
-        $appointment = DB::table('appointments')->insertGetId([
+        $appointment = DB::table('appointments')->insert([
             'subject' => $subject,
             'date' => $date,
             'start_time' => $time,
@@ -101,9 +101,7 @@ class AppointmentsController extends Controller
         ]);
 
         if ($appointment) {
-            $appointment = DB::table('appointments')->where('id', $appointment)->first();
-            return redirect()->route('payment.checkout', ['order_id' => $appointment->order_id, "orderType" => "appointment"])->with('success', 'تم حجز الجلسة بنجاح');
-            // return redirect()->back()->with('success', 'تم حجز الجلسة بنجاح');
+            return redirect()->back()->with('success', 'تم حجز الجلسة بنجاح');
         } else {
             return redirect()->back()->with('error', 'حدث خطأ ما يرجى المحاولة لاحقا');
         }

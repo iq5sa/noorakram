@@ -9,6 +9,7 @@
   "license": "MIT",
   "require": {
     "php": "^8.0.2",
+    "ext-curl": "*",
     "anandsiddharth/laravel-paytm-wallet": "^2.0",
     "anhskohbo/no-captcha": "^3.5",
     "barryvdh/laravel-dompdf": "^2.0",
@@ -29,6 +30,7 @@
     "mollie/laravel-mollie": "^2.25",
     "paypal/rest-api-sdk-php": "^1.6",
     "phpmailer/phpmailer": "^6.4",
+    "platformcommunity/flysystem-bunnycdn": "*",
     "razorpay/razorpay": "^2.8",
     "spatie/crypto": "^2.0",
     "spatie/laravel-cookie-consent": "^3.2",

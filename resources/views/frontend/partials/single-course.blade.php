@@ -1,5 +1,6 @@
 @php use Carbon\Carbon; @endphp
 
+
 <div class="single-courses">
   <div class="courses-thumb">
     <a href="{{ route('course_details', ['slug' => $course->slug]) }}" class="d-block">
@@ -7,6 +8,16 @@
         data-src="{{ asset('/img/courses/thumbnails/' . $course->thumbnail_image)  }}"
         data-lazy="{{ asset('/img/courses/thumbnails/' . $course->thumbnail_image)  }}"
         class="lazy entered loaded" alt="image">
+
+      @php
+        $maxId = \Illuminate\Support\Facades\DB::table('courses')->max('id')
+      @endphp
+
+      @if($course->id === $maxId)
+        <div id="label_new">جديد</div>
+
+      @endif
+
     </a>
   </div>
 
@@ -27,19 +38,17 @@
       </div>
 
       <div class="price">
-        @if ($course->pricing_type == 'premium')
+        @if ($course->pricing_type === 'premium')
           <span title="السعر بعد الخصم">
-                        {{ $currencyInfo->base_currency_symbol_position == 'left' ? $currencyInfo->base_currency_symbol : '' }}
+                      د.ع
             {{ number_format($course->current_price) }}
-            {{ $currencyInfo->base_currency_symbol_position == 'right' ? $currencyInfo->base_currency_symbol : '' }}
-                    </span>
+
+  د.ع                    </span>
 
           @if (!is_null($course->previous_price))
             <span title="السعر السابق" class="pre-price">
-                            {{ $currencyInfo->base_currency_symbol_position == 'left' ? $currencyInfo->base_currency_symbol : '' }}
-              {{ number_format($course->previous_price) }}
-              {{ $currencyInfo->base_currency_symbol_position == 'right' ? $currencyInfo->base_currency_symbol : '' }}
-                        </span>
+  د.ع              {{ number_format($course->previous_price) }}
+  د.ع                        </span>
           @endif
         @else
           <span class="text-primary">مجاناً</span>
@@ -57,18 +66,18 @@
     <ul class="d-flex justify-content-center">
       <li>
         <!-- Display Course Type Icons -->
-        @if ($course->type == 'online')
+        @if ($course->type === 'online')
           <i class="fas fa-globe"></i>على الانترنت
-          <!-- Replace 'fas fa-globe' with the appropriate Font Awesome icon for online courses -->
-        @elseif ($course->type == 'onsite')
+        @elseif ($course->type === 'onsite')
           <i class="fal fa-map-marker-alt"></i>على ارض الواقع
-          <!-- Replace 'fas fa-map-marker-alt' with the appropriate Font Awesome icon for onsite courses -->
         @endif
       </li>
       <li><i class="fal fa-clock"></i>
-        {{ intval($courseDuration->format('h')) . ' س ' . intval($courseDuration->format('i')) . ' د ' }}
+        {{ (int) $courseDuration->format('h') . ' س ' . (int) $courseDuration->format('i') . ' د ' }}
 
       </li>
     </ul>
   </div>
 </div>
+
+
